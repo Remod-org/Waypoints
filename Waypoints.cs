@@ -12,6 +12,7 @@ using Oxide.Core.Libraries.Covalence;
 namespace Oxide.Plugins
 {
     [Info("Waypoints", "RFC1920", "1.1.3", ResourceId = 982)]
+	// Thanks to the original author, Reneb.
     class Waypoints : RustPlugin
     {
         void Loaded()
