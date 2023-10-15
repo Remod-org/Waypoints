@@ -11,29 +11,24 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Waypoints", "RFC1920", "1.1.3", ResourceId = 982)]
-	// Thanks to the original author, Reneb.
+    [Info("Waypoints", "RFC1920", "1.1.4", ResourceId = 982)]
+    internal
+    // Thanks to the original author, Reneb.
     class Waypoints : RustPlugin
     {
-        void Loaded()
-        {
-            LoadData();
-        }
+        private void Loaded() => LoadData();
 
         private DynamicConfigFile data;
         private Dictionary<string, Waypoint> waypoints;
 
-        void SaveData()
-        {
-            data.WriteObject(waypoints);
-        }
+        private void SaveData() => data.WriteObject(waypoints);
 
-        void LoadData()
+        private void LoadData()
         {
             try
             {
                 data = Interface.Oxide.DataFileSystem.GetFile(nameof(Waypoints));
-                data.Settings.Converters = new JsonConverter[] {new UnityVector3Converter()};
+                data.Settings.Converters = new JsonConverter[] { new UnityVector3Converter() };
                 waypoints = data.ReadObject<Dictionary<string, Waypoint>>();
                 waypoints = waypoints.ToDictionary(w => w.Key.ToLower(), w => w.Value);
             }
@@ -43,7 +38,7 @@ namespace Oxide.Plugins
             }
         }
 
-        class WaypointInfo
+        public class WaypointInfo
         {
             [JsonProperty("p")]
             public Vector3 Position;
@@ -60,24 +55,24 @@ namespace Oxide.Plugins
         #region Message
         private string _(string msgId, BasePlayer player, params object[] args)
         {
-            var msg = lang.GetMessage(msgId, this, player?.UserIDString);
+            string msg = lang.GetMessage(msgId, this, player?.UserIDString);
             return args.Length > 0 ? string.Format(msg, args) : msg;
         }
 
         private void PrintMsgL(BasePlayer player, string msgId, params object[] args)
         {
-            if(player == null) return;
+            if (player == null) return;
             PrintMsg(player, _(msgId, player, args));
         }
 
         private void PrintMsg(BasePlayer player, string msg)
         {
-            if(player == null) return;
+            if (player == null) return;
             SendReply(player, $"{msg}");
         }
         #endregion
 
-        void Init()
+        private void Init()
         {
             AddCovalenceCommand("waypoints_new", "cmdWaypointsNew");
             AddCovalenceCommand("waypoints_add", "cmdWaypointsAdd");
@@ -85,7 +80,10 @@ namespace Oxide.Plugins
             AddCovalenceCommand("waypoints_remove", "cmdWaypointsRemove");
             AddCovalenceCommand("waypoints_save", "cmdWaypointsSave");
             AddCovalenceCommand("waypoints_close", "cmdWaypointsClose");
+        }
 
+        protected override void LoadDefaultMessages()
+        {
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 ["notauthorized"] = "You don't have access to this command",
@@ -105,7 +103,7 @@ namespace Oxide.Plugins
             }, this);
         }
 
-        class Waypoint
+        public class Waypoint
         {
             public string Name;
             public List<WaypointInfo> Waypoints;
@@ -120,31 +118,31 @@ namespace Oxide.Plugins
             }
         }
 
-        class WaypointEditor : MonoBehaviour
+        public class WaypointEditor : MonoBehaviour
         {
             public Waypoint targetWaypoint;
 
-            void Awake()
+            private void Awake()
             {
             }
         }
 
         [HookMethod("GetWaypointsList")]
-        object GetWaypointsList(string name)
+        private object GetWaypointsList(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
             Waypoint waypoint;
             if (!waypoints.TryGetValue(name.ToLower(), out waypoint)) return null;
-            var returndic = new List<object>();
+            List<object> returndic = new List<object>();
 
-            foreach(var wp in waypoint.Waypoints)
+            foreach (WaypointInfo wp in waypoint.Waypoints)
             {
                 returndic.Add(new Dictionary<Vector3, float> { { wp.Position, wp.Speed } });
             }
             return returndic;
         }
 
-        bool hasAccess(BasePlayer player)
+        private bool hasAccess(BasePlayer player)
         {
             if (player.net.connection.authLevel < 1)
             {
@@ -154,7 +152,7 @@ namespace Oxide.Plugins
             return true;
         }
 
-        bool isEditingWP(BasePlayer player, int ttype)
+        private bool isEditingWP(BasePlayer player, int ttype)
         {
             if (player.GetComponent<WaypointEditor>() != null)
             {
@@ -170,24 +168,24 @@ namespace Oxide.Plugins
 
         #region commands
         [Command("waypoints_new")]
-        void cmdWaypointsNew(IPlayer iplayer, string command, string[] args)
+        private void cmdWaypointsNew(IPlayer iplayer, string command, string[] args)
         {
-            var player = iplayer.Object as BasePlayer;
+            BasePlayer player = iplayer.Object as BasePlayer;
             if (!hasAccess(player)) return;
             if (isEditingWP(player, 0)) return;
 
-            var newWaypointEditor = player.gameObject.AddComponent<WaypointEditor>();
+            WaypointEditor newWaypointEditor = player.gameObject.AddComponent<WaypointEditor>();
             newWaypointEditor.targetWaypoint = new Waypoint();
             PrintMsgL(player, "listcreated");
         }
 
         [Command("waypoints_add")]
-        void cmdWaypointsAdd(IPlayer iplayer, string command, string[] args)
+        private void cmdWaypointsAdd(IPlayer iplayer, string command, string[] args)
         {
-            var player = iplayer.Object as BasePlayer;
+            BasePlayer player = iplayer.Object as BasePlayer;
             if (!hasAccess(player)) return;
             if (!isEditingWP(player, 1)) return;
-            var WaypointEditor = player.GetComponent<WaypointEditor>();
+            WaypointEditor WaypointEditor = player.GetComponent<WaypointEditor>();
             if (WaypointEditor.targetWaypoint == null)
             {
                 PrintMsgL(player, "wperror");
@@ -197,13 +195,13 @@ namespace Oxide.Plugins
             if (args.Length > 0) float.TryParse(args[0], out speed);
             WaypointEditor.targetWaypoint.AddWaypoint(player.transform.position, speed);
 
-            PrintMsgL(player, "wpadded",  player.transform.position.x, player.transform.position.y, player.transform.position.z, speed);
+            PrintMsgL(player, "wpadded", player.transform.position.x, player.transform.position.y, player.transform.position.z, speed);
         }
 
         [Command("waypoints_list")]
-        void cmdWaypointsList(IPlayer iplayer, string command, string[] args)
+        private void cmdWaypointsList(IPlayer iplayer, string command, string[] args)
         {
-            var player = iplayer.Object as BasePlayer;
+            BasePlayer player = iplayer.Object as BasePlayer;
             if (!hasAccess(player)) return;
             if (waypoints.Count == 0)
             {
@@ -211,23 +209,23 @@ namespace Oxide.Plugins
                 return;
             }
             PrintMsgL(player, "wpheader");
-            foreach (var pair in waypoints)
+            foreach (KeyValuePair<string, Waypoint> pair in waypoints)
             {
                 SendReply(player, pair.Key);
             }
         }
 
         [Command("waypoints_remove")]
-        void cmdWaypointsRemove(IPlayer iplayer, string command, string[] args)
+        private void cmdWaypointsRemove(IPlayer iplayer, string command, string[] args)
         {
-            var player = iplayer.Object as BasePlayer;
+            BasePlayer player = iplayer.Object as BasePlayer;
             if (!hasAccess(player)) return;
             if (waypoints.Count == 0)
             {
                 PrintMsgL(player, "nowp");
                 return;
             }
-            if(args.Length == 0)
+            if (args.Length == 0)
             {
                 PrintMsgL(player, "wplist");
                 return;
@@ -242,9 +240,9 @@ namespace Oxide.Plugins
         }
 
         [Command("waypoints_save")]
-        void cmdWaypointsSave(IPlayer iplayer, string command, string[] args)
+        private void cmdWaypointsSave(IPlayer iplayer, string command, string[] args)
         {
-            var player = iplayer.Object as BasePlayer;
+            BasePlayer player = iplayer.Object as BasePlayer;
             if (!hasAccess(player)) return;
             if (!isEditingWP(player, 1)) return;
             if (args.Length == 0)
@@ -252,14 +250,14 @@ namespace Oxide.Plugins
                 PrintMsgL(player, "wpsave");
                 return;
             }
-            var WaypointEditor = player.GetComponent<WaypointEditor>();
+            WaypointEditor WaypointEditor = player.GetComponent<WaypointEditor>();
             if (WaypointEditor.targetWaypoint == null)
             {
                 PrintMsgL(player, "wperror");
                 return;
             }
 
-            var name = args[0];
+            string name = args[0];
             WaypointEditor.targetWaypoint.Name = name;
             waypoints[name.ToLower()] = WaypointEditor.targetWaypoint;
             PrintMsgL(player, "wpsaved", WaypointEditor.targetWaypoint.Name, WaypointEditor.targetWaypoint.Waypoints.Count);
@@ -268,9 +266,9 @@ namespace Oxide.Plugins
         }
 
         [Command("waypoints_close")]
-        void cmdWaypointsClose(IPlayer iplayer, string command, string[] args)
+        private void cmdWaypointsClose(IPlayer iplayer, string command, string[] args)
         {
-            var player = iplayer.Object as BasePlayer;
+            BasePlayer player = iplayer.Object as BasePlayer;
             if (!hasAccess(player)) return;
             if (!isEditingWP(player, 1)) return;
             PrintMsgL(player, "wpclosed");
@@ -278,11 +276,11 @@ namespace Oxide.Plugins
         }
         #endregion
 
-        private class UnityVector3Converter : JsonConverter
+        public class UnityVector3Converter : JsonConverter
         {
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                var vector = (Vector3)value;
+                Vector3 vector = (Vector3)value;
                 writer.WriteValue($"{vector.x} {vector.y} {vector.z}");
             }
 
@@ -290,10 +288,10 @@ namespace Oxide.Plugins
             {
                 if (reader.TokenType == JsonToken.String)
                 {
-                    var values = reader.Value.ToString().Trim().Split(' ');
+                    string[] values = reader.Value.ToString().Trim().Split(' ');
                     return new Vector3(Convert.ToSingle(values[0]), Convert.ToSingle(values[1]), Convert.ToSingle(values[2]));
                 }
-                var o = JObject.Load(reader);
+                JObject o = JObject.Load(reader);
                 return new Vector3(Convert.ToSingle(o["x"]), Convert.ToSingle(o["y"]), Convert.ToSingle(o["z"]));
             }
 
