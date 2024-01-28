@@ -11,7 +11,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Waypoints", "RFC1920", "1.1.4", ResourceId = 982)]
+    [Info("Waypoints", "RFC1920", "1.1.5", ResourceId = 982)]
     internal
     // Thanks to the original author, Reneb.
     class Waypoints : RustPlugin
@@ -27,7 +27,7 @@ namespace Oxide.Plugins
         {
             try
             {
-                data = Interface.Oxide.DataFileSystem.GetFile(nameof(Waypoints));
+                data = Interface.GetMod().DataFileSystem.GetFile(nameof(Waypoints));
                 data.Settings.Converters = new JsonConverter[] { new UnityVector3Converter() };
                 waypoints = data.ReadObject<Dictionary<string, Waypoint>>();
                 waypoints = waypoints.ToDictionary(w => w.Key.ToLower(), w => w.Value);
